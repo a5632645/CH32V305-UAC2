@@ -8,7 +8,8 @@
 #include "ch32v30x_spi.h"
 #include "ch32v30x_dma.h"
 #include "ch32v30x_misc.h"
-#include "audio_block.h"
+#include "audio_dsp.h"
+#include "config.h"
 
 // --------------------------------------------------------------------------------
 // marco

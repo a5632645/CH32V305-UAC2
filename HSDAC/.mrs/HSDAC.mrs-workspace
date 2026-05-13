@@ -5,11 +5,12 @@
 		},
 		{
 			"name": "HSDAC",
-			"path": "../"
+			"path": "C:\\Users\\Kawai\\Desktop\\a5632645\\CH32V305-UAC2\\HSDAC"
 		}
 	],
 	"settings": {
 		"mrs.workspace.type": "project",
+		"mrs.init.arg": "",
 		"files.associations": {
 			"*.c": "c",
 			"*.h": "cpp",

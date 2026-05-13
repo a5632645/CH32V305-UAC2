@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "audio_block.h"
+#include "kfifo.h"
 
 /**
  * @brief 初始化i2s外设和i2s dma，立即启动dma工作
@@ -52,6 +52,10 @@ void CodecI2s_WriteUACBufferNocheck(struct StereoSample* src, uint32_t len);
  */
 void CodecI2s_FillZero(uint32_t len);
 
+/**
+ * @brief 如果dma缓冲区可写空间过大将填充0
+ * 
+ */
 void CodecI2s_FillZeroIfTooSmallData();
 
 /**
@@ -65,9 +69,11 @@ uint32_t CodecI2s_GetFreeSpace();
  * @brief 调节i2s的时钟分频来设置采样率
  * 
  * @param sample_rate 
+ *          - 192000
+ *          - 96000
+ *          - 48000
  */
 void CodecI2s_SetSampleRate(uint32_t sample_rate);
-
 
 /**
  * @brief 判断dma缓冲区中的数据是少了还是多了

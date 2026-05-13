@@ -26,9 +26,11 @@
 
 static uint32_t sample_rate_;
 static uint32_t diff_sample_rate_;
-static uint32_t es9018_reg_changes_;
+
 static int16_t usb_volume_[2];
 static uint8_t usb_mute_;
+static uint32_t es9018_reg_changes_;
+static void(*i2c_handler_)(bool failed);
 
 // --------------------------------------------------------------------------------
 // implement
@@ -43,6 +45,18 @@ static uint8_t GetRegVolume(uint8_t channel) {
         vol = (uint16_t)(-usb_volume_[channel]) >> 7;
     }
     return vol;
+}
+
+static void _I2cHandler_RegVolume1(bool failed) {
+    if (!failed) {
+        atomic_fetch_and(&es9018_reg_changes_, ~REG_CHANGE_VOLUME1);
+    }
+}
+
+static void _I2cHandler_RegVolume2(bool failed) {
+    if (!failed) {
+        atomic_fetch_and(&es9018_reg_changes_, ~REG_CHANGE_VOLUME2);
+    }
 }
 
 // --------------------------------------------------------------------------------
@@ -206,17 +220,26 @@ void Codec_Handler() {
     if (status == kCodecI2cError_Busy) return;
 
     if (status == kCodecI2cError_Timeout) {
-        CodecI2c_SetStatusFinish();
         printf("es9018k reg set timeout\n\r");
+
+        if (i2c_handler_) {
+            i2c_handler_(true);
+        }
     }
+    else if (status == kCodecI2cError_Finish) {
+        if (i2c_handler_) {
+            i2c_handler_(false);
+        }
+    }
+    CodecI2c_SetStatusIdle();
 
     uint32_t mask = atomic_load(&es9018_reg_changes_);
     if (mask & REG_CHANGE_VOLUME1) {
-        atomic_fetch_and(&es9018_reg_changes_, ~REG_CHANGE_VOLUME1);
+        i2c_handler_ = _I2cHandler_RegVolume1;
         CodecI2c_WriteInterrupt(0x90, 15, GetRegVolume(0), 1000);
     }
     else if (mask & REG_CHANGE_VOLUME2) {
-        atomic_fetch_and(&es9018_reg_changes_, ~REG_CHANGE_VOLUME2);
+        i2c_handler_ = _I2cHandler_RegVolume2;
         CodecI2c_WriteInterrupt(0x90, 16, GetRegVolume(1), 1000);
     }
 }

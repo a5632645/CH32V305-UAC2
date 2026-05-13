@@ -3,7 +3,7 @@
 #include "tick.h"
 #include "usbd.h"
 #include "codec.h"
-#include "audio_block.h"
+#include "audio_dsp.h"
 #include "codec_i2s.h"
 
 int main(void) {
@@ -18,7 +18,7 @@ int main(void) {
     uint32_t tick = Tick_GetTick();
     for (;;) {
         Codec_Handler();
-        AudioBlock_Handler();
+        AudioDsp_Handler();
 
         uint32_t now = Tick_GetTick();
         if (now - tick > 1000) {
@@ -27,7 +27,7 @@ int main(void) {
             }
             tick = now;
 
-            printf("codec dma have %ld\n\r", CodecI2s_GetFreeSpace());
+            printf("codec dma free space %ld\n\r", CodecI2s_GetFreeSpace());
         }
     }
 

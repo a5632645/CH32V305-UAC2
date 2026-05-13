@@ -20,6 +20,7 @@ struct CodecI2cState {
     uint32_t timeout_ticks;
 
     uint8_t busy;
+    // see @enum CodecI2cError
     uint8_t status;
     uint8_t send_status;
 };
@@ -241,15 +242,18 @@ void CodecI2c_ReadInterrupt(
 }
 
 enum CodecI2cError CodecI2c_CheckStatus() {
-    if (state_.status == kCodecI2cError_Finish || state_.busy == 1) {
-        return kCodecI2cError_Finish;
+    if (state_.status == kCodecI2cError_Busy) {
+        uint32_t now = Tick_GetTick();
+        if (now - state_.start_tick > state_.timeout_ticks) {
+            state_.busy = 0;
+            state_.status = kCodecI2cError_Timeout;
+
+            CodecI2c_DisableInterrupt();
+            I2C_ClearITPendingBit(I2C2, I2C_IT_AF | I2C_IT_BERR);
+            I2C_GenerateSTOP(I2C2, ENABLE);
+        }
     }
 
-    uint32_t now = Tick_GetTick();
-    if (now - state_.start_tick > state_.timeout_ticks) {
-        state_.busy = 0;
-        state_.status = kCodecI2cError_Timeout;
-    }
     return state_.status;
 }
 
@@ -257,6 +261,6 @@ uint8_t CodecI2c_GetReadValue() {
     return state_.value;
 }
 
-void CodecI2c_SetStatusFinish() {
-    state_.status = kCodecI2cError_Finish;
+void CodecI2c_SetStatusIdle() {
+    state_.status = kCodecI2cError_Idle;
 }

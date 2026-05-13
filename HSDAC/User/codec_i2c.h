@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 enum CodecI2cError {
+    kCodecI2cError_Idle,
     kCodecI2cError_Timeout,
     kCodecI2cError_Finish,
     kCodecI2cError_Busy
@@ -38,4 +39,4 @@ void CodecI2c_ReadInterrupt(
 );
 enum CodecI2cError CodecI2c_CheckStatus();
 uint8_t CodecI2c_GetReadValue();
-void CodecI2c_SetStatusFinish();
+void CodecI2c_SetStatusIdle();

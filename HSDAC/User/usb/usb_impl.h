@@ -2,7 +2,7 @@
 
 #include "usb_device.h"
 #include "config.h"
-#include "audio_block.h"
+#include "kfifo.h"
 
 void UsbImpl_InitAndOpenEndpoints();
 

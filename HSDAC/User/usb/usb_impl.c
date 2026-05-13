@@ -10,7 +10,7 @@
 #include "codec.h"
 #include "tick.h"
 #include "config.h"
-#include "audio_block.h"
+#include "audio_dsp.h"
 
 // ----------------------------------------
 // define
@@ -52,7 +52,7 @@ static struct {
 };
 static bool cdc_can_send;
 
-static struct AudioBlock* uac2_curr_audio_block_;
+static struct StereoSample uac2_audio_buffer_[UAC_MAX_PACKAGE_SIZE];
 static uint32_t uac2_feedback_val;
 
 static uint8_t hid_idle;
@@ -87,9 +87,8 @@ void UsbImpl_InitAndOpenEndpoints() {
     USBHSD->UEP1_TX_LEN = 4;
     USBHSD->UEP1_TX_CTRL = USBHS_UEP_T_RES_ACK;
 
-    uac2_curr_audio_block_ = AudioBlock_GetPrepareForUac();
     USBHSD->UEP1_MAX_LEN = UAC2_STREAM_DATA_OUT_EP_MPSIZE;
-    USBHSD->UEP1_RX_DMA = (uint32_t)uac2_curr_audio_block_->buffer;
+    USBHSD->UEP1_RX_DMA = (uint32_t)uac2_audio_buffer_;
     USBHSD->UEP1_RX_CTRL = USBHS_UEP_R_RES_ACK;
 
     USBHSD->UEP2_TX_DMA = 0;
@@ -266,11 +265,7 @@ _cdc_ep_send:
 void UsbImpl_EpOutComplete(uint8_t ep_num, uint16_t count) {
     switch (ep_num) {
         case UAC2_STREAM_DATA_OUT_EP_ADDRESS & 0xf:
-            uac2_curr_audio_block_->size = count;
-            uac2_curr_audio_block_->rpos = 0;
-            AudioBlock_UacRecivied(uac2_curr_audio_block_);
-            uac2_curr_audio_block_ = AudioBlock_GetPrepareForUac();
-            USBHSD->UEP1_RX_DMA = (uint32_t)uac2_curr_audio_block_->buffer;
+            AudioDsp_Push(uac2_audio_buffer_, count);
             uac2_feedback_val = ConvertSamplerate2FeedbackRate(Codec_GetFeedbackFs());
             break;
         case CDC_DATA_OUT_EP_ADDRESS & 0xf:
@@ -283,7 +278,7 @@ void UsbImpl_EpOutComplete(uint8_t ep_num, uint16_t count) {
             ++g_hid_queue.num_;
             struct HID_Event* e = HID_Queue_NextDMAItem_IRQ(&g_hid_queue);
             if (e == NULL) {
-                USBHSD->UEP4_RX_CTRL = (USBHSD->UEP4_RX_CTRL & ~USBHS_UEP_R_RES_MASK) | USBHS_UEP_R_RES_NYET;
+                USBHSD->UEP4_RX_CTRL = (USBHSD->UEP4_RX_CTRL & ~USBHS_UEP_R_RES_MASK) | USBHS_UEP_R_RES_NAK;
             }
             else {
                 USBHSD->UEP4_RX_DMA = (uint32_t)e;
