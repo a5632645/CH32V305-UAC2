@@ -18,7 +18,7 @@ tpusb::Device{
     USB_EP0_MAX_PACKAGE_SIZE,
     0x1A86,
     0x0001,
-    0x0002,
+    0x0007,
     1,
     2,
     3,
@@ -70,7 +70,7 @@ Config{
                     0,
                     0,
                     audio_function::ClockAttribute{}
-                        .InternalVariableClock(),
+                        .InternalProgrammableClock(),
                     audio_function::ClockControls{}
                         .FrequencyControl(true, true)
                 },
@@ -131,6 +131,11 @@ Config{
                 1,
                 4,
                 32
+            },
+            AudioStreamFormat{
+                1,
+                4,
+                24
             },
             Endpoint{
                 IsochronousInitPack{

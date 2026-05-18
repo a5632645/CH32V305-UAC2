@@ -1,6 +1,7 @@
 #include "ch32v30x_misc.h"
 #include "debug.h"
 #include "tick.h"
+#include "usb/usb_impl.h"
 #include "usbd.h"
 #include "codec.h"
 #include "audio_dsp.h"
@@ -16,6 +17,7 @@ int main(void) {
 
     Usbd_Connect();
     uint32_t tick = Tick_GetTick();
+    uint32_t adjust_tick = Tick_GetTick();
     for (;;) {
         Codec_Handler();
         AudioDsp_Handler();
@@ -27,7 +29,16 @@ int main(void) {
             }
             tick = now;
 
-            printf("codec dma free space %ld\n\r", CodecI2s_GetFreeSpace());
+            printf("i2s dma free space[%ld/%d]     i2s sr[%ld/%ld]\n\r",
+                CodecI2s_GetFreeSpace(), I2S_DMA_BUFFER_SIZE,
+                Codec_GetFeedbackFs(), Codec_GetSampleRate()
+            );
+        }
+
+        if (now - adjust_tick > 10) {
+            adjust_tick = now;
+            Codec_AdjustFeedbackFs();
+            UsbUac_SetFeedbackFs(Codec_GetFeedbackFs());
         }
     }
 

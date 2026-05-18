@@ -266,7 +266,6 @@ void UsbImpl_EpOutComplete(uint8_t ep_num, uint16_t count) {
     switch (ep_num) {
         case UAC2_STREAM_DATA_OUT_EP_ADDRESS & 0xf:
             AudioDsp_Push(uac2_audio_buffer_, count);
-            uac2_feedback_val = ConvertSamplerate2FeedbackRate(Codec_GetFeedbackFs());
             break;
         case CDC_DATA_OUT_EP_ADDRESS & 0xf:
             USBHSD->UEP3_RX_CTRL ^= USBHS_UEP_T_TOG_DATA1;
@@ -383,6 +382,10 @@ static void UsbUac2_HandleClassRequest(struct UsbDevice* device, bool* allow, bo
             break;
         }
     }
+}
+
+void UsbUac_SetFeedbackFs(uint32_t fs) {
+    uac2_feedback_val = ConvertSamplerate2FeedbackRate(fs);
 }
 
 // --------------------------------------------------------------------------------

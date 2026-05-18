@@ -226,6 +226,16 @@ struct ClockSampleRateList {
             char_array[begin++] = list[i] >> 8;
             char_array[begin++] = list[i] >> 16;
             char_array[begin++] = list[i] >> 24;
+
+            char_array[begin++] = list[i] & 0xff;
+            char_array[begin++] = list[i] >> 8;
+            char_array[begin++] = list[i] >> 16;
+            char_array[begin++] = list[i] >> 24;
+
+            char_array[begin++] = 0;
+            char_array[begin++] = 0;
+            char_array[begin++] = 0;
+            char_array[begin++] = 0;
         }
     }
 };
