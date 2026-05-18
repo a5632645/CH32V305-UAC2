@@ -18,4 +18,3 @@ void    Codec_SetVolume(uint8_t channel, int16_t volume);
 int16_t Codec_GetVolume(uint8_t channel);
 
 uint32_t Codec_GetFeedbackFs();
-void     Codec_AdjustFeedbackFs();

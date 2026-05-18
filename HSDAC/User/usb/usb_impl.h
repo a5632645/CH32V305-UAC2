@@ -55,5 +55,3 @@ enum Uac2EntityId {
 
 void UsbCdc_Write(uint8_t const* buffer, uint32_t bytes);
 bool UsbCdc_CanWrite();
-
-void UsbUac_SetFeedbackFs(uint32_t fs);

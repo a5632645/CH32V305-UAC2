@@ -26,11 +26,7 @@
 // --------------------------------------------------------------------------------
 
 static uint32_t sample_rate_;
-static uint32_t local_sample_rate_;
 static uint32_t diff_sample_rate_;
-static uint32_t max_local_sample_rate_;
-static uint32_t min_local_sample_rate_;
-static uint32_t step_;
 
 static int16_t usb_volume_[2];
 static uint8_t usb_mute_;
@@ -115,19 +111,14 @@ void Codec_SetSampleRate(uint32_t sample_rate) {
     switch (sample_rate) {
         case 96000:
             diff_sample_rate_ = 200;
-            step_ = 2;
             break;
         case 48000:
             diff_sample_rate_ = 100;
-            step_ = 1;
             break;
         case 192000:
             diff_sample_rate_ = 400;
-            step_ = 3;
             break;
     }
-    max_local_sample_rate_ = sample_rate_ + diff_sample_rate_;
-    min_local_sample_rate_ = sample_rate_ - diff_sample_rate_;
     CodecI2s_SetSampleRate(sample_rate);
 }
 
@@ -213,40 +204,15 @@ int16_t Codec_GetVolume(uint8_t channel) {
 }
 
 uint32_t Codec_GetFeedbackFs() {
-    // int32_t diff_state = CodecI2s_GetCurrentSizeDiffFromCenter();
-    // if (diff_state == -1) {
-    //     return sample_rate_ + diff_sample_rate_;
-    // }
-    // else if (diff_state == 0) {
-    //     return sample_rate_;
-    // }
-    // else {
-    //     return sample_rate_ - diff_sample_rate_;
-    // }
-    return local_sample_rate_;
-}
-
-void Codec_AdjustFeedbackFs() {
-    uint32_t free_space = CodecI2s_GetFreeSpace();
-    uint32_t center = I2S_DMA_BUFFER_SIZE / 2;
-    int32_t error = free_space - center;
-    int32_t adjust_hz = error / 32;
-    // if (adjust_hz > 1) adjust_hz = 1;
-    // if (adjust_hz < -1) adjust_hz = -1;
-    local_sample_rate_ += adjust_hz;
-    // int32_t diff_state = CodecI2s_GetCurrentSizeDiffFromCenter();
-    // if (diff_state == -1) {
-    //     local_sample_rate_ += step_;
-    // }
-    // else if (diff_state == 1) {
-    //     local_sample_rate_ -= step_;
-    // }
-
-    if (local_sample_rate_ > max_local_sample_rate_) {
-        local_sample_rate_ = max_local_sample_rate_;
+    int32_t diff_state = CodecI2s_GetCurrentSizeDiffFromCenter();
+    if (diff_state == -1) {
+        return sample_rate_ + diff_sample_rate_;
     }
-    if (local_sample_rate_ < min_local_sample_rate_) {
-        local_sample_rate_ = min_local_sample_rate_;
+    else if (diff_state == 0) {
+        return sample_rate_;
+    }
+    else {
+        return sample_rate_ - diff_sample_rate_;
     }
 }
 

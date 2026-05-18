@@ -17,7 +17,6 @@ int main(void) {
 
     Usbd_Connect();
     uint32_t tick = Tick_GetTick();
-    uint32_t adjust_tick = Tick_GetTick();
     for (;;) {
         Codec_Handler();
         AudioDsp_Handler();
@@ -33,12 +32,6 @@ int main(void) {
                 CodecI2s_GetFreeSpace(), I2S_DMA_BUFFER_SIZE,
                 Codec_GetFeedbackFs(), Codec_GetSampleRate()
             );
-        }
-
-        if (now - adjust_tick > 10) {
-            adjust_tick = now;
-            Codec_AdjustFeedbackFs();
-            UsbUac_SetFeedbackFs(Codec_GetFeedbackFs());
         }
     }
 
