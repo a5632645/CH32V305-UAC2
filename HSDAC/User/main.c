@@ -23,15 +23,16 @@ int main(void) {
 
         uint32_t now = Tick_GetTick();
         if (now - tick > 1000) {
+            tick = now;
             if (!inited) {
                 printf("codec inited failed\n\r");
             }
-            tick = now;
-
-            printf("i2s dma free space[%ld/%d]     i2s sr[%ld/%ld]\n\r",
-                CodecI2s_GetFreeSpace(), I2S_DMA_BUFFER_SIZE,
-                Codec_GetFeedbackFs(), Codec_GetSampleRate()
-            );
+            else {
+                printf("i2s dma free space[%ld/%d]     i2s sr[%ld/%ld]\n\r",
+                    CodecI2s_GetFreeSpace(), I2S_DMA_BUFFER_SIZE,
+                    Codec_GetFeedbackFs(), Codec_GetSampleRate()
+                );
+            }
         }
     }
 

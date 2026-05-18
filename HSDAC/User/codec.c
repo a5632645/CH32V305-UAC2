@@ -26,7 +26,9 @@
 // --------------------------------------------------------------------------------
 
 static uint32_t sample_rate_;
-static uint32_t diff_sample_rate_;
+static uint32_t ceil_sample_rate_;
+static uint32_t floor_sample_rate_;
+static uint32_t maybe_sample_rate_;
 
 static int16_t usb_volume_[2];
 static uint8_t usb_mute_;
@@ -67,6 +69,7 @@ static void _I2cHandler_RegVolume2(bool failed) {
 bool Codec_Init() {
     CodecI2c_Init();
     CodecI2s_Init();
+    Codec_SetSampleRate(48000);
 
     // PA1/PA5 -> RESETB
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
@@ -80,6 +83,7 @@ bool Codec_Init() {
     init.GPIO_Pin = GPIO_Pin_1;
     GPIO_Init(GPIOA, &init);
 
+    Delay_Ms(100);
     GPIO_WriteBit(GPIOA, GPIO_Pin_1, Bit_RESET);
     Delay_Ms(100);
     GPIO_WriteBit(GPIOA, GPIO_Pin_1, Bit_SET);
@@ -107,16 +111,29 @@ uint32_t Codec_GetSampleRate() {
 }
 
 void Codec_SetSampleRate(uint32_t sample_rate) {
+    if (sample_rate_ == sample_rate) return;
+
     sample_rate_ = sample_rate;
     switch (sample_rate) {
-        case 96000:
-            diff_sample_rate_ = 200;
+        case 44100:
+            maybe_sample_rate_ = 44070.51f;
+            floor_sample_rate_ = 44026.44f;
+            ceil_sample_rate_ = 44114.58f;
             break;
         case 48000:
-            diff_sample_rate_ = 100;
+            maybe_sample_rate_ = 48011.36f;
+            floor_sample_rate_ = 47963.35f;
+            ceil_sample_rate_ = 48059.38f;
+            break;
+        case 96000:
+            maybe_sample_rate_ = 96022.73f;
+            floor_sample_rate_ = 95926.70f;
+            ceil_sample_rate_ = 96118.75f;
             break;
         case 192000:
-            diff_sample_rate_ = 400;
+            maybe_sample_rate_ = 192307.69f;
+            floor_sample_rate_ = 192115.38f;
+            ceil_sample_rate_ = 192500.00f;
             break;
     }
     CodecI2s_SetSampleRate(sample_rate);
@@ -206,13 +223,13 @@ int16_t Codec_GetVolume(uint8_t channel) {
 uint32_t Codec_GetFeedbackFs() {
     int32_t diff_state = CodecI2s_GetCurrentSizeDiffFromCenter();
     if (diff_state == -1) {
-        return sample_rate_ + diff_sample_rate_;
+        return ceil_sample_rate_;
     }
     else if (diff_state == 0) {
-        return sample_rate_;
+        return maybe_sample_rate_;
     }
     else {
-        return sample_rate_ - diff_sample_rate_;
+        return floor_sample_rate_;
     }
 }
 

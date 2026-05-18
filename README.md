@@ -15,11 +15,11 @@ ch32v305fbp6 + es9018k2m + opa1678 + sgm8262
 
 ## notice
 
-Due to using inexpensive components, the clock has approximately a 200 Hz error. Additionally, the MCLK GPIO speed exceeds the maximum 50 MHz limit at 192 kHz.  
+Due to no use of external crystal, the clock has a very large error. Additionally, the MCLK GPIO speed has been almost 49.2308(ideal)MHZ which will exceeds the maximum 50 MHz limit at 192 kHz.  
 If desired, you can use an external crystal for the I2S MCLK clock.  
-This dac only support 48k,96k,192k 32bits, dsd and other formats are not considered.  
+This dac only support 44.1k,48k,96k,192k 32bits, dsd and other formats are not considered.  
 This DAC only supports high-speed connections.  
-You might hear some popping sounds during sudden high-load tasks. 
+You might hear some popping sounds during sudden high-load tasks(and switch sample rate).  
 
 ## setup
 Just flash HSDAC.elf to hardware. Don't use HID-Bootloader and dfu, they will be redoing in future.  
