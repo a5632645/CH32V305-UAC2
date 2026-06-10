@@ -26,7 +26,9 @@
 // --------------------------------------------------------------------------------
 
 static uint32_t sample_rate_;
-static uint32_t diff_sample_rate_;
+static uint32_t maybe_sr_;
+static uint32_t floor_sr_;
+static uint32_t ceil_sr_;
 
 static int16_t usb_volume_[2];
 static uint8_t usb_mute_;
@@ -110,13 +112,19 @@ void Codec_SetSampleRate(uint32_t sample_rate) {
     sample_rate_ = sample_rate;
     switch (sample_rate) {
         case 96000:
-            diff_sample_rate_ = 200;
+            maybe_sr_ = 48070 * 2;
+            floor_sr_ = 48060 * 2;
+            ceil_sr_ = 48080 * 2;
             break;
         case 48000:
-            diff_sample_rate_ = 100;
+            maybe_sr_ = 48070;
+            floor_sr_ = 48060;
+            ceil_sr_ = 48080;
             break;
         case 192000:
-            diff_sample_rate_ = 400;
+            maybe_sr_ = 48070 * 4;
+            floor_sr_ = 48060 * 4;
+            ceil_sr_ = 48080 * 4;
             break;
     }
     CodecI2s_SetSampleRate(sample_rate);
@@ -206,13 +214,13 @@ int16_t Codec_GetVolume(uint8_t channel) {
 uint32_t Codec_GetFeedbackFs() {
     int32_t diff_state = CodecI2s_GetCurrentSizeDiffFromCenter();
     if (diff_state == -1) {
-        return sample_rate_ + diff_sample_rate_;
+        return ceil_sr_;
     }
     else if (diff_state == 0) {
-        return sample_rate_;
+        return maybe_sr_;
     }
     else {
-        return sample_rate_ - diff_sample_rate_;
+        return floor_sr_;
     }
 }
 
