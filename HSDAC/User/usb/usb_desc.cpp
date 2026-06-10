@@ -18,7 +18,7 @@ tpusb::Device{
     USB_EP0_MAX_PACKAGE_SIZE,
     0x1A86,
     0x0001,
-    0x0008,
+    0x0007,
     1,
     2,
     3,
@@ -131,6 +131,11 @@ Config{
                 1,
                 4,
                 32
+            },
+            AudioStreamFormat{
+                1,
+                4,
+                24
             },
             Endpoint{
                 IsochronousInitPack{
@@ -301,8 +306,8 @@ const uint8_t MySerNumInfo[] =
 };
 
 static constexpr auto kUac2SampleRateTable =
-tpusb::uac2::audio_function::ClockSampleRateList<4> {
-    {44100, 48000, 96000, 192000}
+tpusb::uac2::audio_function::ClockSampleRateList<3> {
+    {48000, 96000, 192000}
 };
 
 extern "C" {

@@ -116,59 +116,6 @@ static void I2S2_PrescaleConfig(uint32_t v) {
 // public
 // --------------------------------------------------------------------------------
 
-void CodecI2s_SetSampleRate(uint32_t sample_rate) {
-    RCC_SYSCLKConfig(RCC_SYSCLKSource_HSI);
-    while ((RCC->CFGR0 & (uint32_t)RCC_SWS) != RCC_SWS_HSI)
-        ;
-
-    RCC_PLL2Cmd(DISABLE);
-    RCC_PLLCmd(DISABLE);
-    switch (sample_rate) {
-    case 192000:
-        RCC_PREDIV2Config(RCC_PREDIV2_Div13);
-        RCC_PLL2Config(RCC_PLL2Mul_20);
-        RCC_PREDIV1Config(RCC_PREDIV1_Source_PLL2, RCC_PREDIV1_Div1);
-        RCC_PLLConfig(RCC_PLLSource_PREDIV1, RCC_PLLMul_12_EXTEN);
-        I2S2_PrescaleConfig(3);
-        break;
-    case 96000:
-        RCC_PREDIV2Config(RCC_PREDIV2_Div1);
-        RCC_PLL2Config(RCC_PLL2Mul_13);
-        RCC_PREDIV1Config(RCC_PREDIV1_Source_PLL2, RCC_PREDIV1_Div11);
-        RCC_PLLConfig(RCC_PLLSource_PREDIV1, RCC_PLLMul_13_EXTEN);
-        I2S2_PrescaleConfig(5);
-        break;
-    case 48000:
-        RCC_PREDIV2Config(RCC_PREDIV2_Div1);
-        RCC_PLL2Config(RCC_PLL2Mul_13);
-        RCC_PREDIV1Config(RCC_PREDIV1_Source_PLL2, RCC_PREDIV1_Div10);
-        RCC_PLLConfig(RCC_PLLSource_PREDIV1, RCC_PLLMul_13_EXTEN);
-        I2S2_PrescaleConfig(11);
-        break;
-    case 44100:
-        RCC_PREDIV2Config(RCC_PREDIV2_Div1);
-        RCC_PLL2Config(RCC_PLL2Mul_5);
-        RCC_PREDIV1Config(RCC_PREDIV1_Source_PLL2, RCC_PREDIV1_Div3);
-        RCC_PLLConfig(RCC_PLLSource_PREDIV1, RCC_PLLMul_11_EXTEN);
-        I2S2_PrescaleConfig(13);
-        break;
-    default:
-        break;
-    }
-
-    RCC_PLL2Cmd(ENABLE);
-    while ((RCC->CTLR & RCC_PLL2RDY) == 0)
-        ;
-
-    RCC_PLLCmd(ENABLE);
-    while((RCC->CTLR & RCC_PLLRDY) == 0)
-        ;
-
-    RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
-    while ((RCC->CFGR0 & (uint32_t)RCC_SWS) != RCC_SWS_PLL)
-        ;
-}
-
 void CodecI2s_Init(void) {
     I2S2_Init();
     DMA_Tx_Init(DMA1_Channel5, (u32)&SPI2->DATAR, (u32)&i2s_dma_buffer_, I2S_DMA_BUFFER_SIZE * sizeof(struct StereoSample) / sizeof(uint16_t));
@@ -282,6 +229,21 @@ void CodecI2s_FillZeroIfTooSmallData() {
 
 uint32_t CodecI2s_GetFreeSpace() {
     return GetDmaCanWrite();
+}
+
+void CodecI2s_SetSampleRate(uint32_t sample_rate) {
+    switch (sample_rate) {
+    case 96000:
+        I2S2_PrescaleConfig(6);
+        break;
+    case 192000:
+        I2S2_PrescaleConfig(3);
+        break;
+    case 48000:
+    default:
+        I2S2_PrescaleConfig(12);
+        break;
+    }
 }
 
 int32_t CodecI2s_GetCurrentSizeDiffFromCenter() {
