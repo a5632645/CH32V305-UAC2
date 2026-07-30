@@ -2,7 +2,8 @@
 a usb-hs uac2 dac
 
 > [!NOTE]
-> ch32v305fbp6 doesn't have OTG-HS(but it has OTG-FS), so you can't connect this project to a smartphone.  
+> smartphone may not support feedback endpoint  
+> just a toy, the clock will cause some buffer overflow
 
 ## hardware v1
 ch32v305fbp6 + es9018k2m + opa1678  
