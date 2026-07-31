@@ -39,11 +39,18 @@ static void handleHid(void) {
         case kHidCommand_Update: {
             struct UacParam* param = Codec_GetUacParam();
             memcpy(&param->sr48k, hid_data + 1, sizeof(struct UacParam) - sizeof(uint32_t));
+            UacParam_Clamp(param);   // 限制到合法范围
         }
             break;
 
-        case kHidCommand_Save:
-            UacParam_Write(Codec_GetUacParam());
+        case kHidCommand_Save: {
+            if (UacParam_Write(Codec_GetUacParam())) {
+                printf("uac param saved\n\r");
+            }
+            else {
+                printf("uac param save failed\n\r");
+            }
+        }
             break;
     }
 

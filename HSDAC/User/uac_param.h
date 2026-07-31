@@ -23,3 +23,6 @@ void UacParam_Read(struct UacParam* param);
 
 // 整块写入结构体（自动保证 magic 一致）。
 bool UacParam_Write(const struct UacParam* param);
+
+// 将各采样率校准值限制到合法范围（标称 ±10%）。
+void UacParam_Clamp(struct UacParam* param);

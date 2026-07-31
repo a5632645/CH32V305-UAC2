@@ -489,6 +489,7 @@ const uint8_t* UsbHid_GetData(void) {
 }
 
 void UsbHid_BeginRecv(void) {
+    hid_rx_pending = false;
     USBHSD->UEP4_RX_DMA = (uint32_t)hid_rx_buffer;
     USBHSD->UEP4_RX_CTRL = (USBHSD->UEP4_RX_CTRL & ~USBHS_UEP_R_RES_MASK) | USBHS_UEP_R_RES_ACK;
 }

@@ -28,7 +28,7 @@ import sys
 import hid
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QComboBox,
+    QApplication, QWidget, QLabel, QSpinBox, QPushButton, QComboBox,
     QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox,
 )
 
@@ -55,6 +55,13 @@ HID_UPDATE_FMT = "<I 9I"
 
 SR_NAMES = ["sr48k", "sr96k", "sr192k"]
 FIELD_NAMES = ["ceil", "normal", "floor"]
+
+# 各采样率档位合法范围（标称 ±0.5%，与固件 UacParam_Clamp 一致）
+SR_RANGES = {
+    "sr48k": (47760, 48240),
+    "sr96k": (95520, 96480),
+    "sr192k": (191040, 192960),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -150,11 +157,14 @@ class MainWindow(QWidget):
             grid.addWidget(QLabel(name), 0, c)
         for r, sr in enumerate(SR_NAMES, start=1):
             grid.addWidget(QLabel(sr), r, 0)
+            lo, hi = SR_RANGES[sr]
             for c, f in enumerate(FIELD_NAMES, start=1):
-                le = QLineEdit("0")
-                le.setAlignment(Qt.AlignmentFlag.AlignRight)
-                self.edits[(sr, f)] = le
-                grid.addWidget(le, r, c)
+                sb = QSpinBox()
+                sb.setRange(lo, hi)          # UI 直接限制合法范围
+                sb.setValue(lo)
+                sb.setMinimumWidth(100)
+                self.edits[(sr, f)] = sb
+                grid.addWidget(sb, r, c)
         box = QGroupBox("UacParam（各采样率反馈采样率 ceil/normal/floor）")
         box.setLayout(grid)
         root.addWidget(box)
@@ -219,20 +229,12 @@ class MainWindow(QWidget):
             return
         for i, sr in enumerate(SR_NAMES):
             for j, f in enumerate(FIELD_NAMES):
-                self.edits[(sr, f)].setText(str(srs[i][j]))
+                self.edits[(sr, f)].setValue(srs[i][j])
         self.status.setText("读取成功（EP0 GET_REPORT，整个 UacParam）")
 
     def _collect_values(self):
-        srs = []
-        for i, sr in enumerate(SR_NAMES):
-            vals = []
-            for j, f in enumerate(FIELD_NAMES):
-                v = int(self.edits[(sr, f)].text(), 0)
-                if not (0 <= v < (1 << 32)):
-                    raise ValueError(f"{sr}.{f} 超出 uint32 范围")
-                vals.append(v)
-            srs.append(vals)
-        return srs
+        # QSpinBox 已限制范围，直接取值
+        return [[self.edits[(sr, f)].value() for f in FIELD_NAMES] for sr in SR_NAMES]
 
     # ---- 更新缓存（HID OUT 命令0）----
     def do_update(self):

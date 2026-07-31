@@ -5,7 +5,7 @@
 			"type": "mrs-debugger",
 			"request": "launch",
 			"name": "HSDAC",
-			"cwd": "c:\\Users\\Kawai\\Desktop\\OtherProject\\CH32V305-UAC2\\HSDAC",
+			"cwd": "c:\\Users\\Kawai\\Desktop\\a5632645\\CH32V305-UAC2\\HSDAC",
 			"openOCDCfg": {
 				"useLocalOpenOCD": true,
 				"executable": "c:/MounRiver/MounRiver_Studio2/resources/app/resources/win32/components/WCH/OpenOCD/OpenOCD/bin/openocd.exe",
@@ -39,8 +39,8 @@
 					"additionalCommands": []
 				},
 				"loadedFiles": {
-					"executableFile": "c:\\Users\\Kawai\\Desktop\\OtherProject\\CH32V305-UAC2\\HSDAC\\obj\\HSDAC.elf",
-					"symbolFile": "c:\\Users\\Kawai\\Desktop\\OtherProject\\CH32V305-UAC2\\HSDAC\\obj\\HSDAC.elf",
+					"executableFile": "c:\\Users\\Kawai\\Desktop\\a5632645\\CH32V305-UAC2\\HSDAC\\obj\\HSDAC.elf",
+					"symbolFile": "c:\\Users\\Kawai\\Desktop\\a5632645\\CH32V305-UAC2\\HSDAC\\obj\\HSDAC.elf",
 					"executableFileOffset": 0,
 					"symbolFileOffset": 0
 				},
