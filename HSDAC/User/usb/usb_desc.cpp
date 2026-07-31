@@ -35,6 +35,31 @@ tpusb::Config{
     }
 };
 
+static constexpr uint8_t MyHIDReportDesc_HS[]{
+    0x06, 0x00, 0xff,       // Usage Page (Vendor Defined)
+    0x09, 0x01,             // Usage (Vendor Usage 1)
+    0xA1, 0x01,             // Collection (Application)
+    0x09, 0x02,             //   usage 2
+    0x15, 0x00,             //   Logical Minimum (0)
+    0x25, 0xFF,             //   Logical Maximum (255)
+    0x75, 0x08,             //   Report Size (8)
+    0x95, 40,             //   Report Count (40)
+    0x91, 0x02,             //   Output (Data, Variable, Absolute)
+    0x09, 0x03,             //   usage 3
+    0x15, 0x00,             //   Logical Minimum (0)
+    0x25, 0xFF,             //   Logical Maximum (255)
+    0x75, 0x08,             //   Report Size (8)
+    0x95, 0x03,             //   Report Count (3)
+    0x81, 0x02,             //   Input (Data, Variable, Absolute)
+    0x09, 0x04,             //   usage 4
+    0x15, 0x00,             //   Logical Minimum (0)
+    0x25, 0xFF,             //   Logical Maximum (255)
+    0x75, 0x08,             //   Report Size (8)
+    0x95, 40,               //   Report Count (40)
+    0xB1, 0x02,             //   Feature (Data, Variable, Absolute)
+    0xC0                    // End Collection
+};
+
 using namespace tpusb;
 using namespace tpusb::uac2;
 using namespace tpusb::cdc;
@@ -235,7 +260,7 @@ Config{
             {
                 HID_DescriptorLengthDesc{
                     .type = 0x22,
-                    .length = 32
+                    .length = sizeof(MyHIDReportDesc_HS)
                 }
             }
         },
@@ -259,25 +284,6 @@ static constexpr uint8_t MyQuaDesc[]{
     0x40,
     0x01,
     0x00,
-};
-
-static constexpr uint8_t MyHIDReportDesc_HS[]{
-    0x06, 0x00, 0xff,       // Usage Page (Vendor Defined)
-    0x09, 0x01,             // Usage (Vendor Usage 1)
-    0xA1, 0x01,             // Collection (Application)
-    0x09, 0x02,             //   usage 2
-    0x15, 0x00,             //   Logical Minimum (0)
-    0x25, 0xFF,             //   Logical Maximum (255)
-    0x75, 0x08,             //   Report Size (8)
-    0x95, 0x03,             //   Report Count (3)
-    0x91, 0x02,             //   Output (Data, Variable, Absolute)
-    0x09, 0x03,             //   usage 3
-    0x15, 0x00,             //   Logical Minimum (0)
-    0x25, 0xFF,             //   Logical Maximum (255)
-    0x75, 0x08,             //   Report Size (8)
-    0x95, 0x03,             //   Report Count (3)
-    0x81, 0x02,             //   Input (Data, Variable, Absolute)
-    0xC0                    // End Collection
 };
 
 /* Language Descriptor */

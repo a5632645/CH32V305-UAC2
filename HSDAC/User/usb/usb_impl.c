@@ -6,7 +6,6 @@
 
 #include "usb_desc.h"
 #include "usb_hardware.h"
-#include "hid_queue.h"
 #include "codec.h"
 #include "tick.h"
 #include "config.h"
@@ -56,6 +55,13 @@ static struct StereoSample uac2_audio_buffer_[UAC_MAX_PACKAGE_SIZE];
 static uint32_t uac2_feedback_val;
 
 static uint8_t hid_idle;
+
+// 固定 64 字节 HID 报告缓冲区（阻塞式：端点收到一包后 NAK，
+// 主循环 UsbHid_GetData() 取走数据后才恢复 ACK）
+__attribute__((aligned(4)))
+static uint8_t hid_rx_buffer[HID_RX_BUFFER_SIZE];
+static volatile uint32_t hid_rx_len;
+static volatile bool hid_rx_pending;
 
 // --------------------------------------------------------------------------------
 // declare
@@ -111,8 +117,10 @@ void UsbImpl_InitAndOpenEndpoints() {
     USBHSD->UEP3_RX_CTRL = USBHS_UEP_R_TOG_DATA1 | USBHS_UEP_R_RES_ACK;
 
     USBHSD->UEP4_MAX_LEN = HID_DATA_OUT_EP_MPSIZE;
-    USBHSD->UEP4_RX_DMA = (uint32_t)&g_hid_queue.events_[g_hid_queue.wpos_];
+    USBHSD->UEP4_RX_DMA = (uint32_t)hid_rx_buffer;
     USBHSD->UEP4_RX_CTRL = USBHS_UEP_R_RES_ACK;
+    hid_rx_len = 0;
+    hid_rx_pending = false;
 }
 
 void UsbImpl_HandleClassRequest(struct UsbDevice* device, bool* allow, bool setup_phase) {
@@ -266,26 +274,26 @@ void UsbImpl_EpOutComplete(uint8_t ep_num, uint16_t count) {
     switch (ep_num) {
         case UAC2_STREAM_DATA_OUT_EP_ADDRESS & 0xf:
             AudioDsp_Push(uac2_audio_buffer_, count);
-            uac2_feedback_val = ConvertSamplerate2FeedbackRate(Codec_GetFeedbackFs());
             break;
         case CDC_DATA_OUT_EP_ADDRESS & 0xf:
             USBHSD->UEP3_RX_CTRL ^= USBHS_UEP_T_TOG_DATA1;
             USBHSD->UEP3_RX_CTRL = (USBHSD->UEP3_RX_CTRL & USBHS_UEP_R_TOG_MASK) | USBHS_UEP_R_RES_ACK;
             break;
         case HID_DATA_OUT_EP_ADDRESS & 0xf:
+            // 阻塞式：收到一包 HID 报告后端点 NAK，直到主循环
+            // UsbHid_GetData() 取走数据并恢复 ACK
             USBHSD->UEP4_RX_CTRL ^= USBHS_UEP_R_TOG_DATA1;
-            // only usb and main thread use this
-            ++g_hid_queue.num_;
-            struct HID_Event* e = HID_Queue_NextDMAItem_IRQ(&g_hid_queue);
-            if (e == NULL) {
-                USBHSD->UEP4_RX_CTRL = (USBHSD->UEP4_RX_CTRL & ~USBHS_UEP_R_RES_MASK) | USBHS_UEP_R_RES_NAK;
-            }
-            else {
-                USBHSD->UEP4_RX_DMA = (uint32_t)e;
-                USBHSD->UEP4_RX_CTRL = (USBHSD->UEP4_RX_CTRL & ~USBHS_UEP_R_RES_MASK) | USBHS_UEP_R_RES_ACK;
-            }
+            USBHSD->UEP4_RX_CTRL = (USBHSD->UEP4_RX_CTRL & ~USBHS_UEP_R_RES_MASK) | USBHS_UEP_R_RES_NAK;
+            hid_rx_len = count;
+            asm volatile("" ::: "memory");
+            hid_rx_pending = true;
             break;
     }
+}
+
+void UsbImpl_SetFeedbackSr(uint32_t sr) {
+    // 转换并写入反馈值；UEP1_TX_DMA 已指向 uac2_feedback_val，硬件每帧自动发送。
+    uac2_feedback_val = ConvertSamplerate2FeedbackRate(sr);
 }
 
 void UsbImpl_StallEndpoint(uint8_t address) {
@@ -444,8 +452,12 @@ static void UsbHid_HandleClassRequest(struct UsbDevice* device, bool* allow, boo
         case 0x09:
             break;
         // get report
-        case 0x01:
+        case 0x01: {
+            *allow = true;
+            device->ep0.transfer_buffer = (uint8_t*)Codec_GetUacParam();
+            device->ep0.transfer_remain = sizeof(struct UacParam);
             break;
+        }
         // set idle
         case 0x0a:
             *allow = true;
@@ -466,4 +478,17 @@ static void UsbHid_HandleClassRequest(struct UsbDevice* device, bool* allow, boo
         case 0x03:
             break;
     }
+}
+
+bool UsbHid_HasData(void) {
+    return hid_rx_pending;
+}
+
+const uint8_t* UsbHid_GetData(void) {
+    return hid_rx_buffer;
+}
+
+void UsbHid_BeginRecv(void) {
+    USBHSD->UEP4_RX_DMA = (uint32_t)hid_rx_buffer;
+    USBHSD->UEP4_RX_CTRL = (USBHSD->UEP4_RX_CTRL & ~USBHS_UEP_R_RES_MASK) | USBHS_UEP_R_RES_ACK;
 }

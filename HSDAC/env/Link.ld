@@ -11,8 +11,11 @@ MEMORY
    CH32V30x_D8 - CH32V303CB-CH32V303RB
 */
 
-    FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 128K
+    FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 124K
     RAM (xrw) : ORIGIN = 0x20000000, LENGTH = 32K
+
+    /* 用户参数区：最后一个 4K 扇区（0x1F000~0x1FFFF），留给 uac_param 模块读写 */
+    USER_FLASH (rx) : ORIGIN = 0x1F000, LENGTH = 4K
 
     
 /* CH32V30x_D8C - CH32V307VC-CH32V307WC-CH32V307RC-CH32V305CC
@@ -180,5 +183,14 @@ SECTIONS
         . = . + __stack_size;
         PROVIDE( _eusrstack = .);
     } >RAM 
+
+    /* 用户参数区占位段：标记 uac_param 使用的最后一个扇区（NOLOAD，不产生烧写内容） */
+    .user_flash (NOLOAD) :
+    {
+        . = ALIGN(4);
+        PROVIDE( _user_flash_start = . );
+        . = . + 4K;
+        PROVIDE( _user_flash_end = . );
+    } > USER_FLASH
 
 }

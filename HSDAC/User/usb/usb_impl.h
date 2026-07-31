@@ -21,6 +21,9 @@ void UsbImpl_GetDescriptor(struct UsbDevice* device, bool* allow);
 void UsbImpl_EpInComplete(uint8_t ep_num);
 void UsbImpl_EpOutComplete(uint8_t ep_num, uint16_t count);
 
+// 主循环调用：设置 USB 反馈采样率（内部转成反馈速率写入 uac2_feedback_val，DMA 自动发送）。
+void UsbImpl_SetFeedbackSr(uint32_t sr);
+
 enum Uac2EntityId {
     kUac2EntityId_Clock = 3,
     kUac2EntityId_FeatureUnit = 4,
@@ -49,9 +52,14 @@ enum Uac2EntityId {
 
 #define HID_DATA_INTERFACE 4
 #define HID_DATA_OUT_EP_ADDRESS 0x04
-#define HID_DATA_OUT_EP_MPSIZE 4
+#define HID_DATA_OUT_EP_MPSIZE 64
+#define HID_RX_BUFFER_SIZE 64
 
 #define USBIMPL_INTERFACE_COUNT 5
 
 void UsbCdc_Write(uint8_t const* buffer, uint32_t bytes);
-bool UsbCdc_CanWrite();
+bool UsbCdc_CanWrite(void);
+
+bool UsbHid_HasData(void);
+const uint8_t* UsbHid_GetData(void);
+void UsbHid_BeginRecv(void);

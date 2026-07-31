@@ -7,6 +7,7 @@
 #include "codec_i2s.h"
 #include "ch32v30x_rcc.h"
 #include "ch32v30x_gpio.h"
+#include "uac_param.h"
 #include "config.h"
 #include "debug.h"
 
@@ -26,9 +27,7 @@
 // --------------------------------------------------------------------------------
 
 static uint32_t sample_rate_;
-static uint32_t maybe_sr_;
-static uint32_t floor_sr_;
-static uint32_t ceil_sr_;
+static struct UacParam uac_param_;
 
 static int16_t usb_volume_[2];
 static uint8_t usb_mute_;
@@ -87,6 +86,9 @@ bool Codec_Init() {
     GPIO_WriteBit(GPIOA, GPIO_Pin_1, Bit_SET);
     Delay_Ms(100);
 
+    // 首次从 UacParam（flash 校准表）加载并缓存
+    UacParam_Init(&uac_param_);
+
     bool inited = true;
     inited = inited && (kCodecI2cError_Finish == CodecI2c_PollWrite(0x90, 0, 0xf1, 1000));
     Delay_Ms(100);
@@ -110,23 +112,6 @@ uint32_t Codec_GetSampleRate() {
 
 void Codec_SetSampleRate(uint32_t sample_rate) {
     sample_rate_ = sample_rate;
-    switch (sample_rate) {
-        case 96000:
-            maybe_sr_ = 48070 * 2;
-            floor_sr_ = 48060 * 2;
-            ceil_sr_ = 48080 * 2;
-            break;
-        case 48000:
-            maybe_sr_ = 48070;
-            floor_sr_ = 48060;
-            ceil_sr_ = 48080;
-            break;
-        case 192000:
-            maybe_sr_ = 48070 * 4;
-            floor_sr_ = 48060 * 4;
-            ceil_sr_ = 48080 * 4;
-            break;
-    }
     CodecI2s_SetSampleRate(sample_rate);
 }
 
@@ -211,17 +196,24 @@ int16_t Codec_GetVolume(uint8_t channel) {
     return 0;
 }
 
-uint32_t Codec_GetFeedbackFs() {
-    int32_t diff_state = CodecI2s_GetCurrentSizeDiffFromCenter();
-    if (diff_state == -1) {
-        return ceil_sr_;
+const struct UacFeedbackRate* Codec_GetFeedbackRate(void) {
+    switch (sample_rate_) {
+        case 192000:
+            return &uac_param_.sr192k;
+        case 96000:
+            return &uac_param_.sr96k;
+        case 48000:
+        default:
+            return &uac_param_.sr48k;
     }
-    else if (diff_state == 0) {
-        return maybe_sr_;
-    }
-    else {
-        return floor_sr_;
-    }
+}
+
+void Codec_RefreshFeedbackParam(void) {
+    UacParam_Read(&uac_param_);
+}
+
+struct UacParam* Codec_GetUacParam(void) {
+    return &uac_param_;
 }
 
 void Codec_Handler() {

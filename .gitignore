@@ -3,4 +3,5 @@ hardware_v1/HSDAC-backups/
 hardware_v2/jlcpcb/
 hardware_v2/HSDAC-backups/
 HSDAC/Obj/
+HSDAC/build/
 dfu/build/

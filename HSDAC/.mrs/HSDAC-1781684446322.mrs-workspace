@@ -1,12 +1,11 @@
 {
 	"folders": [
 		{
-			"name": ".mrs",
 			"path": "."
 		},
 		{
 			"name": "HSDAC",
-			"path": ".."
+			"path": "c:\\Users\\Kawai\\Desktop\\a5632645\\CH32V305-UAC2\\HSDAC"
 		}
 	],
 	"settings": {

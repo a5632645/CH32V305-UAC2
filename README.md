@@ -4,9 +4,6 @@ a usb-hs uac2 dac
 > [!NOTE]
 > ch32v305fbp6 doesn't have OTG-HS(but it has OTG-FS), so you can't connect this project to a smartphone.  
 
-## hardware v1
-ch32v305fbp6 + es9018k2m + opa1678  
-
 ## hardware v2
 ch32v305fbp6 + es9018k2m + opa1678 + sgm8262  
 > [!NOTE]
@@ -23,6 +20,10 @@ You might hear some popping sounds during sudden high-load tasks.
 
 ## setup
 Just flash HSDAC.elf to hardware. Don't use HID-Bootloader and dfu, they will be redoing in future.  
+
+## host
+there is a [simple python tool](host/main.py) that can adjust feedback clock  
+try it
 
 ## help wanted
 Can someone redesign the power amplifier circuit?  
