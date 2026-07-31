@@ -63,6 +63,64 @@ SR_RANGES = {
     "sr192k": (191040, 192960),
 }
 
+# ---------------------------------------------------------------------------
+# i18n（中 / 英）
+# ---------------------------------------------------------------------------
+TRANSLATIONS = {
+    "zh": {
+        "window_title": "UAC2 校准 - HID 参数读写 (CH32V305)",
+        "lang": "语言:",
+        "device": "设备:",
+        "refresh": "刷新",
+        "open": "打开",
+        "param_group": "UacParam（各采样率反馈采样率 ceil/normal/floor）",
+        "read": "读取校准",
+        "read_tip": "EP0 GET_REPORT，一次取回整个 UacParam",
+        "update": "更新缓存",
+        "update_tip": "HID OUT 命令0：只更新设备内存，不写 flash",
+        "save": "保存到 Flash",
+        "save_tip": "HID OUT 命令1：把内存缓存写入 flash",
+        "not_open": "未打开设备",
+        "open_ok": "设备已打开",
+        "open_fail": "打开失败: {e}",
+        "enum_fail": "枚举失败: {e}",
+        "found_n": "找到 {n} 个设备（VID={vid:04X} PID={pid:04X}）",
+        "please_open": "请先打开设备",
+        "read_ok": "读取成功（EP0 GET_REPORT，整个 UacParam）",
+        "read_fail": "读取失败: {e}",
+        "update_ok": "已更新内存缓存（HID OUT UPDATE，{n} 字节）",
+        "update_fail": "更新失败: {e}",
+        "save_ok": "已写入 flash（HID OUT SAVE，{n} 字节）",
+        "save_fail": "保存失败: {e}",
+    },
+    "en": {
+        "window_title": "UAC2 Calibration - HID Param R/W (CH32V305)",
+        "lang": "Language:",
+        "device": "Device:",
+        "refresh": "Refresh",
+        "open": "Open",
+        "param_group": "UacParam (feedback sample rates ceil/normal/floor)",
+        "read": "Read Calibration",
+        "read_tip": "EP0 GET_REPORT, read whole UacParam at once",
+        "update": "Update Cache",
+        "update_tip": "HID OUT cmd 0: update device RAM cache only, no flash",
+        "save": "Save to Flash",
+        "save_tip": "HID OUT cmd 1: write cache to flash",
+        "not_open": "Device not opened",
+        "open_ok": "Device opened",
+        "open_fail": "Open failed: {e}",
+        "enum_fail": "Enumerate failed: {e}",
+        "found_n": "Found {n} device(s) (VID={vid:04X} PID={pid:04X})",
+        "please_open": "Please open a device first",
+        "read_ok": "Read OK (EP0 GET_REPORT, whole UacParam)",
+        "read_fail": "Read failed: {e}",
+        "update_ok": "Cache updated (HID OUT UPDATE, {n} bytes)",
+        "update_fail": "Update failed: {e}",
+        "save_ok": "Written to flash (HID OUT SAVE, {n} bytes)",
+        "save_fail": "Save failed: {e}",
+    },
+}
+
 
 # ---------------------------------------------------------------------------
 # 编解码
@@ -126,26 +184,76 @@ def write_report(dev, report):
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("UAC2 校准 - HID 参数读写 (CH32V305)")
+        self.lang = "zh"
         self.setMinimumWidth(520)
         self.dev = None
         self.edits = {}
+        self.devices = []
+        self.container = None
+        # 固定顶层布局，语言切换时替换内容容器
+        self._outer = QVBoxLayout(self)
         self._build_ui()
         self.refresh_devices()
 
+    def _tr(self, key, **kw):
+        text = TRANSLATIONS.get(self.lang, TRANSLATIONS["zh"]).get(key, key)
+        return text.format(**kw) if kw else text
+
+    def _rebuild(self):
+        # 保留编辑值与设备选中，重建 UI（语言切换后刷新文本）
+        values = None
+        if self.edits:
+            values = self._collect_values()
+        path = self.dev_combo.currentData() if getattr(self, "dev_combo", None) else None
+        self.edits = {}
+        self._build_ui()
+        for d in self.devices:
+            label = f"{d.get('product_string', 'HID')}  VID={d['vendor_id']:04X} PID={d['product_id']:04X}"
+            self.dev_combo.addItem(label, d.get("path"))
+        if path is not None:
+            idx = self.dev_combo.findData(path)
+            if idx >= 0:
+                self.dev_combo.setCurrentIndex(idx)
+        if values:
+            for i, sr in enumerate(SR_NAMES):
+                for j, f in enumerate(FIELD_NAMES):
+                    self.edits[(sr, f)].setValue(values[i][j])
+
+    def on_lang_changed(self, index):
+        self.lang = "zh" if index == 0 else "en"
+        self._rebuild()
+
     def _build_ui(self):
-        root = QVBoxLayout(self)
+        self.setWindowTitle(self._tr("window_title"))
+        # 替换内容容器（避免 QWidget 重复 setLayout 警告）
+        if self.container is not None:
+            self._outer.removeWidget(self.container)
+            self.container.deleteLater()
+        self.container = QWidget(self)
+        self._outer.addWidget(self.container)
+        root = QVBoxLayout(self.container)
+
+        # ---- 语言选择 ----
+        lang_row = QHBoxLayout()
+        lang_row.addWidget(QLabel(self._tr("lang")))
+        self.lang_combo = QComboBox()
+        self.lang_combo.addItems(["中文", "English"])
+        self.lang_combo.setCurrentIndex(0 if self.lang == "zh" else 1)
+        self.lang_combo.currentIndexChanged.connect(self.on_lang_changed)
+        lang_row.addWidget(self.lang_combo)
+        lang_row.addStretch(1)
+        root.addLayout(lang_row)
 
         # ---- 设备选择 ----
         dev_row = QHBoxLayout()
-        dev_row.addWidget(QLabel("设备:"))
+        dev_row.addWidget(QLabel(self._tr("device")))
         self.dev_combo = QComboBox()
         self.dev_combo.setMinimumWidth(320)
         dev_row.addWidget(self.dev_combo, 1)
-        btn_refresh = QPushButton("刷新")
+        btn_refresh = QPushButton(self._tr("refresh"))
         btn_refresh.clicked.connect(self.refresh_devices)
         dev_row.addWidget(btn_refresh)
-        btn_open = QPushButton("打开")
+        btn_open = QPushButton(self._tr("open"))
         btn_open.clicked.connect(self.open_selected)
         dev_row.addWidget(btn_open)
         root.addLayout(dev_row)
@@ -165,27 +273,27 @@ class MainWindow(QWidget):
                 sb.setMinimumWidth(100)
                 self.edits[(sr, f)] = sb
                 grid.addWidget(sb, r, c)
-        box = QGroupBox("UacParam（各采样率反馈采样率 ceil/normal/floor）")
+        box = QGroupBox(self._tr("param_group"))
         box.setLayout(grid)
         root.addWidget(box)
 
         # ---- 操作按钮 ----
         btn_row = QHBoxLayout()
-        btn_read = QPushButton("读取校准")
-        btn_read.setToolTip("EP0 GET_REPORT，一次取回整个 UacParam")
+        btn_read = QPushButton(self._tr("read"))
+        btn_read.setToolTip(self._tr("read_tip"))
         btn_read.clicked.connect(self.do_read)
         btn_row.addWidget(btn_read)
-        btn_update = QPushButton("更新缓存")
-        btn_update.setToolTip("HID OUT 命令0：只更新设备内存，不写 flash")
+        btn_update = QPushButton(self._tr("update"))
+        btn_update.setToolTip(self._tr("update_tip"))
         btn_update.clicked.connect(self.do_update)
         btn_row.addWidget(btn_update)
-        btn_save = QPushButton("保存到 Flash")
-        btn_save.setToolTip("HID OUT 命令1：把内存缓存写入 flash")
+        btn_save = QPushButton(self._tr("save"))
+        btn_save.setToolTip(self._tr("save_tip"))
         btn_save.clicked.connect(self.do_save)
         btn_row.addWidget(btn_save)
         root.addLayout(btn_row)
 
-        self.status = QLabel("未打开设备")
+        self.status = QLabel(self._tr("not_open"))
         self.status.setWordWrap(True)
         root.addWidget(self.status)
 
@@ -193,14 +301,14 @@ class MainWindow(QWidget):
     def refresh_devices(self):
         self.dev_combo.clear()
         try:
-            devices = list_devices()
+            self.devices = list_devices()
         except Exception as e:
-            self.status.setText(f"枚举失败: {e}")
+            self.status.setText(self._tr("enum_fail", e=e))
             return
-        for d in devices:
+        for d in self.devices:
             label = f"{d.get('product_string', 'HID')}  VID={d['vendor_id']:04X} PID={d['product_id']:04X}"
             self.dev_combo.addItem(label, d.get("path"))
-        self.status.setText(f"找到 {len(devices)} 个设备（VID={VID:04X} PID={PID:04X}）")
+        self.status.setText(self._tr("found_n", n=len(self.devices), vid=VID, pid=PID))
 
     def open_selected(self):
         if self.dev is not None:
@@ -213,24 +321,24 @@ class MainWindow(QWidget):
         try:
             self.dev = open_device(path)
         except Exception as e:
-            self.status.setText(f"打开失败: {e}")
+            self.status.setText(self._tr("open_fail", e=e))
             return
-        self.status.setText("设备已打开")
+        self.status.setText(self._tr("open_ok"))
 
     # ---- 读取 ----
     def do_read(self):
         if self.dev is None:
-            self.status.setText("请先打开设备")
+            self.status.setText(self._tr("please_open"))
             return
         try:
             srs = read_param(self.dev)
         except Exception as e:
-            self.status.setText(f"读取失败: {e}")
+            self.status.setText(self._tr("read_fail", e=e))
             return
         for i, sr in enumerate(SR_NAMES):
             for j, f in enumerate(FIELD_NAMES):
                 self.edits[(sr, f)].setValue(srs[i][j])
-        self.status.setText("读取成功（EP0 GET_REPORT，整个 UacParam）")
+        self.status.setText(self._tr("read_ok"))
 
     def _collect_values(self):
         # QSpinBox 已限制范围，直接取值
@@ -239,27 +347,27 @@ class MainWindow(QWidget):
     # ---- 更新缓存（HID OUT 命令0）----
     def do_update(self):
         if self.dev is None:
-            self.status.setText("请先打开设备")
+            self.status.setText(self._tr("please_open"))
             return
         try:
             srs = self._collect_values()
             n = write_report(self.dev, build_update(srs))
         except Exception as e:
-            self.status.setText(f"更新失败: {e}")
+            self.status.setText(self._tr("update_fail", e=e))
             return
-        self.status.setText(f"已更新内存缓存（HID OUT UPDATE，{n} 字节）")
+        self.status.setText(self._tr("update_ok", n=n))
 
     # ---- 保存到 Flash（HID OUT 命令1）----
     def do_save(self):
         if self.dev is None:
-            self.status.setText("请先打开设备")
+            self.status.setText(self._tr("please_open"))
             return
         try:
             n = write_report(self.dev, build_save())
         except Exception as e:
-            self.status.setText(f"保存失败: {e}")
+            self.status.setText(self._tr("save_fail", e=e))
             return
-        self.status.setText(f"已写入 flash（HID OUT SAVE，{n} 字节）")
+        self.status.setText(self._tr("save_ok", n=n))
 
 
 def main():
