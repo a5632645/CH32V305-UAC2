@@ -24,10 +24,13 @@ Just flash HSDAC.elf to hardware. Don't use HID-Bootloader and dfu, they will be
 
 ## host
 there is a [simple python tool](host/main.py) that can adjust feedback clock  
-try it
+try it if audio underrun or overflow  
 
 ## help wanted
-Can someone redesign the power amplifier circuit?  
+Can someone redesign the hardware circuit?  
 
-# IMAGE
+## additional repos
+[CH32V307 UAC with external clock](https://github.com/LoveLonelyTime/USBAudioToI2S)
+
+## IMAGE
 ![DAC Image](resource/dacv2.jpg)
